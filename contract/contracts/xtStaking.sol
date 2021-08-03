@@ -53,7 +53,6 @@ contract xtStaing is Ownable{
         xtToken = _xtToken;
         
         init(_startTime);
-        initTest(_startTime);// only for test
     }
     
     //fallback() external payable { }
@@ -86,7 +85,7 @@ contract xtStaing is Ownable{
     function withdraw(uint256 _stakingType,uint256 _amount) public{
         
         user_S storage us = userInfo[msg.sender][_stakingType];
-        require(us.amount>= _amount,"not enght amount");
+        require(us.amount>= _amount && _amount > 0,"not enght amount");
         
         getReward(_stakingType);
         
@@ -104,8 +103,8 @@ contract xtStaing is Ownable{
         emit Withdraw(msg.sender,_stakingType,_amount);
     }
     
-    function getCanWithdrawAmount(uint256 _stakingType) public view returns(uint256 _amount){
-        user_S memory us = userInfo[msg.sender][_stakingType];
+    function getCanWithdrawAmount(uint256 _stakingType,address _user) public view returns(uint256 _amount){
+        user_S memory us = userInfo[_user][_stakingType];
         if(!us.isKeepStaking){
             (,uint256 nowStartime,) =getEpoch(_stakingType,now);
             if(nowStartime >= us.changeKeepStakingTime){
@@ -127,7 +126,12 @@ contract xtStaing is Ownable{
         if(reward > 0){
             if(!us.isKeepStaking){
                 (,,uint256 endTime) = getEpoch(_stakingType,us.changeKeepStakingTime);
-                us.lastUpdateRewardTime = endTime;
+                if(now < endTime){
+                    us.lastUpdateRewardTime = now;
+                }else{
+                    us.lastUpdateRewardTime = endTime;
+                }
+                
             }else{
                 us.lastUpdateRewardTime = now;
             }
@@ -179,7 +183,16 @@ contract xtStaing is Ownable{
         }else{
             // only need update time to get end time
             (,,endTime) = getEpoch(_stakingType,us.changeKeepStakingTime);
-            timeLen = endTime.sub(us.lastUpdateRewardTime);
+            if(now < endTime  ){
+                if(now > us.lastUpdateRewardTime){
+                    timeLen = now.sub(us.lastUpdateRewardTime);
+                }else{
+                    timeLen = 0;
+                }
+            }else{
+                timeLen = endTime.sub(us.lastUpdateRewardTime);
+            }
+            
         }
         
         uint256 _amount = us.amount.mul(timeLen).mul(pool.epochRewardRate).div(1e18);
@@ -202,7 +215,7 @@ contract xtStaing is Ownable{
             _epochendTime = pool.startTime.add(pool.epochTimelen);
             return (_epochIndex,_epochStartTime,_epochendTime);
         }
-        if(epcohLen != 0 && epcohLen > pool.currentEpoch){
+        if(epcohLen != 0 && (epcohLen > pool.currentEpoch ||  epcohLen < pool.currentEpoch)){
             if(_time.sub(pool.startTime) > epcohLen.mul(pool.epochTimelen)){
                 currentepoch_index = epcohLen+1;
             }else{
@@ -220,8 +233,8 @@ contract xtStaing is Ownable{
             _epochStartTime = pool.startTime;
             _epochendTime = pool.startTime.add(pool.epochTimelen);
         }else{
-            _epochStartTime = _epochIndex.sub(1).mul(pool.epochTimelen);
-            _epochendTime = _epochIndex.mul(pool.epochTimelen);
+            _epochStartTime = _epochIndex.sub(1).mul(pool.epochTimelen).add(pool.startTime);
+            _epochendTime = _epochIndex.mul(pool.epochTimelen).add(pool.startTime);
         }
     }
     
@@ -267,25 +280,6 @@ contract xtStaing is Ownable{
         
         isStakingType[15552000] = true;
         isStakingType[31536000] = true;
-    }
-    
-    function initTest(uint256 _startTime) internal{
-        stakingPoolInfo[100] = stakingPoolInfo_S({
-            startTime:_startTime,
-            currentEpoch:1,
-            epochTimelen:100,
-            epochRewardRate: 5*1e17.div(31536000)
-        });
-        
-        stakingPoolInfo[600] = stakingPoolInfo_S({
-            startTime:_startTime,
-            currentEpoch:1,
-            epochTimelen:600,
-            epochRewardRate: 1*1e18.div(31536000)
-        });
-        
-        isStakingType[100] = true;
-        isStakingType[600] = true;
     }
     
     // Withdraw without caring about rewards. EMERGENCY ONLY.
