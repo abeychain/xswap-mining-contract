@@ -1,1 +1,1 @@
-# xswap-mining-contractCode
+# xswap-mining-contract
