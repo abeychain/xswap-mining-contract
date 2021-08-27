@@ -37,7 +37,6 @@ contract XTPool is Ownable {
     struct UserInfo {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt.
-        uint256 multLpRewardDebt; //multLp Reward debt.
     }
 
     // Info of each pool.
@@ -79,6 +78,10 @@ contract XTPool is Ownable {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event SetPause(bool _pause);
+    event SetXTPerBlock(uint256 _amount);
+    event SetDecayRatio(uint256 _ratio);
+    event SetDecoyPeriod(uint256 _block);
 
     constructor(
         IXT _xt,
@@ -99,17 +102,23 @@ contract XTPool is Ownable {
 
     function setDecayPeriod(uint256 _block) public onlyOwner {
         decayPeriod = _block;
+
+        emit SetDecoyPeriod(_block);
     }
 
 	function setDecayRatio(uint256 _ratio) public onlyOwner {
 		require(_ratio<1000,"ratio should less than 1000");
         decayRatio = _ratio;
+
+        emit SetDecayRatio(_ratio);
     }
 
     // Set the number of XT produced by each block
     function setXTPerBlock(uint256 _newPerBlock) public onlyOwner {
         massUpdatePools();
         PerBlock = _newPerBlock;
+
+        emit SetXTPerBlock(_newPerBlock);
     }
 
     function poolLength() public view returns (uint256) {
@@ -118,6 +127,8 @@ contract XTPool is Ownable {
 
     function setPause() public onlyOwner {
         paused = !paused;
+
+        emit SetPause(paused);
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
@@ -141,7 +152,7 @@ contract XTPool is Ownable {
     }
 
     // Update the given pool's XT allocation point. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner  validatePoolByPid(_pid){
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -226,7 +237,7 @@ contract XTPool is Ownable {
     }
 
     // Update reward variables of the given pool to be up-to-date.
-    function updatePool(uint256 _pid) public {
+    function updatePool(uint256 _pid) public  validatePoolByPid(_pid) {
         PoolInfo storage pool = poolInfo[_pid];
         if (block.number <= pool.lastRewardBlock) {
             return;
@@ -252,7 +263,7 @@ contract XTPool is Ownable {
     }
 
     // View function to see pending XTs on frontend.
-    function pending(uint256 _pid, address _user) external view returns (uint256){
+    function pending(uint256 _pid, address _user) external view returns (uint256) validatePoolByPid(_pid){
         return pendingReward(_pid, _user);
     }
 
@@ -276,7 +287,7 @@ contract XTPool is Ownable {
         return 0;
     }
 
-    function getPoolTotalSupply(uint256 _pid) view public returns(uint256 lpSupply){
+    function getPoolTotalSupply(uint256 _pid) view public returns(uint256 lpSupply) validatePoolByPid(_pid){
         PoolInfo storage pool = poolInfo[_pid];
         
         if(address(pool.lpToken) == ABEYToken){
@@ -286,7 +297,7 @@ contract XTPool is Ownable {
         }
     }
     // Deposit LP tokens to HecoPool for xt allocation.
-    function deposit(uint256 _pid, uint256 _amount) public notPause payable {
+    function deposit(uint256 _pid, uint256 _amount) public notPause payable validatePoolByPid(_pid) {
         depositXT(_pid, _amount, msg.sender);
     }
 
@@ -318,7 +329,7 @@ contract XTPool is Ownable {
     }
 
     // Withdraw LP tokens from HecoPool.
-    function withdraw(uint256 _pid, uint256 _amount) public notPause {
+    function withdraw(uint256 _pid, uint256 _amount) public notPause validatePoolByPid(_pid){
         withdrawXT(_pid, _amount, msg.sender);
     }
 
@@ -346,7 +357,7 @@ contract XTPool is Ownable {
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
-    function emergencyWithdraw(uint256 _pid) public notPause {
+    function emergencyWithdraw(uint256 _pid) public  validatePoolByPid(_pid){
         emergencyWithdrawXT(_pid, msg.sender);
         
     }
@@ -380,5 +391,8 @@ contract XTPool is Ownable {
     modifier notPause() {
         require(paused == false, "Mining has been suspended");
         _;
+    }
+    modifier validatePoolByPid(uint256 _pid){
+        require(_pid < poolInfo.length-1,"Pool not exit");
     }
 }

@@ -239,18 +239,6 @@ contract xtStaing is Ownable{
     }
     
     
-    function withERC20(address tokenAddr, address recipient,uint256 amount) public onlyOwner{
-        require(tokenAddr != address(0),"DPAddr: tokenAddr is zero");
-        require(recipient != address(0),"DPAddr: recipient is zero");
-        IERC20  tkCoin = IERC20(tokenAddr);
-        if(tkCoin.balanceOf(address(this)) >= amount){
-            tkCoin.transfer(recipient,amount);
-        }else{
-            tkCoin.transfer(recipient,tkCoin.balanceOf(address(this))) ;
-        }
-    }
-    
-    
     function addStakingPool(uint256 _stakingType,uint256 _startTime,uint256 _rate) public onlyOwner{
         require(!isStakingType[_stakingType],"already add this stakingType");
         stakingPoolInfo[_stakingType] = stakingPoolInfo_S({
