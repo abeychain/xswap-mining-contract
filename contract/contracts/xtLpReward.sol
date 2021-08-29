@@ -263,7 +263,7 @@ contract XTPool is Ownable {
     }
 
     // View function to see pending XTs on frontend.
-    function pending(uint256 _pid, address _user) external view returns (uint256) validatePoolByPid(_pid){
+    function pending(uint256 _pid, address _user) external view validatePoolByPid(_pid) returns (uint256) {
         return pendingReward(_pid, _user);
     }
 
@@ -287,7 +287,7 @@ contract XTPool is Ownable {
         return 0;
     }
 
-    function getPoolTotalSupply(uint256 _pid) view public returns(uint256 lpSupply) validatePoolByPid(_pid){
+    function getPoolTotalSupply(uint256 _pid) view validatePoolByPid(_pid) public returns(uint256 lpSupply) {
         PoolInfo storage pool = poolInfo[_pid];
         
         if(address(pool.lpToken) == ABEYToken){
@@ -392,7 +392,9 @@ contract XTPool is Ownable {
         require(paused == false, "Mining has been suspended");
         _;
     }
+    
     modifier validatePoolByPid(uint256 _pid){
         require(_pid < poolInfo.length-1,"Pool not exit");
+        _;
     }
 }

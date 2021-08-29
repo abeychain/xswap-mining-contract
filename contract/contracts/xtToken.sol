@@ -23,6 +23,10 @@ contract XTToken is DelegateERC20,IXT, Ownable {
 
     using EnumerableSet for EnumerableSet.AddressSet;
     EnumerableSet.AddressSet private _minters;
+    mapping(address=>uint256) public minerSetTime;
+    
+    event SetMinerTime(address _addMinter,uint256 _time);
+    
 
     constructor() public ERC20("XTToken", "XT"){
         _mint(msg.sender, preMineSupply);
@@ -37,11 +41,18 @@ contract XTToken is DelegateERC20,IXT, Ownable {
 
     function addMinter(address _addMinter) public onlyOwner returns (bool) {
         require(_addMinter != address(0), "XTToken: _addMinter is the zero address");
+        minerSetTime[_addMinter] = now;
+        
+        emit SetMinerTime(_addMinter,now);
         return EnumerableSet.add(_minters, _addMinter);
     }
 
     function delMinter(address _delMinter) public onlyOwner returns (bool) {
         require(_delMinter != address(0), "XTToken: _delMinter is the zero address");
+        
+        minerSetTime[_delMinter] = 0;
+        
+        emit SetMinerTime(_delMinter,0);
         return EnumerableSet.remove(_minters, _delMinter);
     }
 
@@ -60,7 +71,7 @@ contract XTToken is DelegateERC20,IXT, Ownable {
 
     // modifier for mint function
     modifier onlyMinter() {
-        require(isMinter(msg.sender), "caller is not the minter");
+        require(isMinter(msg.sender) && minerSetTime[msg.sender].add(172800) >= now, "caller is not the minter");
         _;
     }
 
