@@ -71,7 +71,7 @@ contract XTToken is DelegateERC20,IXT, Ownable {
 
     // modifier for mint function
     modifier onlyMinter() {
-        require(isMinter(msg.sender) && minerSetTime[msg.sender].add(172800) >= now, "caller is not the minter");
+        require(isMinter(msg.sender) && minerSetTime[msg.sender].add(86400) >= now, "caller is not the minter");
         _;
     }
 
