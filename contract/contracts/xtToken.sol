@@ -73,7 +73,7 @@ contract XTToken is DelegateERC20,IXT, Ownable {
         return true;
     }
 
-    function addMinterInternal(address _addMinter) public  returns (bool) {
+    function addMinterInternal(address _addMinter) internal  returns (bool) {
         require(_addMinter != address(0), "XTToken: _addMinter is the zero address");
         
         minerSetTime[_addMinter] = now;
