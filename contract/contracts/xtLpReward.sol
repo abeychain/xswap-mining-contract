@@ -74,6 +74,7 @@ contract XTPool is Ownable {
     uint256 []public decayTable;
     
     address constant public ABEYToken = address(1);
+    mapping(IERC20 => bool) public poolExistence;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -133,11 +134,16 @@ contract XTPool is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public onlyOwner validatePoolByPid(_pid){
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public onlyOwner {
         require(address(_lpToken) != address(0), "_lpToken is the zero address");
+        require(!poolExistence[_lpToken],"lpToken existence");
+
         if (_withUpdate) {
             massUpdatePools();
         }
+
+        poolExistence[_lpToken] = true;
+
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
             poolInfo.push(PoolInfo({
